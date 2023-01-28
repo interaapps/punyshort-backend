@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import de.interaapps.punyshort.controller.HttpController;
 import de.interaapps.punyshort.exceptions.NotFoundException;
 import de.interaapps.punyshort.model.database.ShortenLink;
+import de.interaapps.punyshort.model.database.User;
 import de.interaapps.punyshort.model.database.cache.IPAddressCountryCodeCache;
 import de.interaapps.punyshort.model.database.domains.Domain;
 import de.interaapps.punyshort.model.database.stats.*;
@@ -12,6 +13,8 @@ import de.interaapps.punyshort.model.responses.links.ShortenLinkResponse;
 import org.javawebstack.abstractdata.AbstractObject;
 import org.javawebstack.httpclient.HTTPClient;
 import org.javawebstack.httpserver.router.annotation.PathPrefix;
+import org.javawebstack.httpserver.router.annotation.With;
+import org.javawebstack.httpserver.router.annotation.params.Attrib;
 import org.javawebstack.httpserver.router.annotation.params.Body;
 import org.javawebstack.httpserver.router.annotation.verbs.Post;
 import org.javawebstack.orm.Repo;
@@ -24,9 +27,13 @@ public class FollowController extends HttpController {
     private int threads = 0;
 
     @Post
-    public ShortenLinkResponse follow(@Body FollowLinkRequest request) {
+    @With("auth")
+    public ShortenLinkResponse follow(@Body FollowLinkRequest request, @Attrib("user") User user) {
         System.out.println(new Gson().toJson(request));
-        ShortenLink shortenLink = ShortenLink.get(Domain.byName(request.domain), request.path);
+        Domain domain = Domain.byName(request.domain);
+        ShortenLink shortenLink = ShortenLink.get(domain, request.path);
+
+        domain.checkUserAccess(user);
 
         if (shortenLink == null)
             throw new NotFoundException();

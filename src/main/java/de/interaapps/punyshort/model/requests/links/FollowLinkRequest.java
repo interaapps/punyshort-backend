@@ -12,6 +12,6 @@ public class FollowLinkRequest {
     @Rule({"string(4)"})
     public String domain;
 
-    @Rule({"string(5)"})
+    @Rule({"string(1)"})
     public String path;
 }

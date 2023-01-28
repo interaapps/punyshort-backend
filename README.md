@@ -1,4 +1,5 @@
 # Punyshort Backend
+[Read more on Punyshort on the Punyshort Main project](https://github.com/interaapps/punyshort)
 
 ## Envirnoment Variables
 ```properties

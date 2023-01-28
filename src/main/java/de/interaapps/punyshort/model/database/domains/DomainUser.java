@@ -18,7 +18,7 @@ public class DomainUser extends Model {
     private String userId;
 
     @Column
-    private Role role = Role.USER;
+    private Role role = Role.MEMBER;
 
     @Column
     public Timestamp createdAt;
@@ -27,7 +27,7 @@ public class DomainUser extends Model {
     public Timestamp updatedAt;
 
     public enum Role {
-        USER,
+        MEMBER,
         ADMIN;
     }
 }

@@ -52,7 +52,7 @@ public class Domain extends Model {
     }
 
     public void checkUserAccess(User user) {
-        if (Repo.get(DomainUser.class).where("domain", id).where("userId", user.id).first() != null) {
+        if (Repo.get(DomainUser.class).where("domain", id).where("userId", user.id).first() == null) {
             throw new PermissionsDeniedException();
         }
     }
