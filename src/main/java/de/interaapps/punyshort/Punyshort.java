@@ -142,6 +142,7 @@ public class Punyshort {
             ORM.autoMigrate();
         } catch (SQLDriverNotFoundException | ORMConfigurationException e) {
             e.printStackTrace();
+            System.exit(0);
         }
 
         linkFilters = Repo.get(LinkFilter.class).all().stream().map(filter -> Pattern.compile(filter.filter)).collect(Collectors.toList());
