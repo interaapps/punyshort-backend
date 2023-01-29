@@ -56,8 +56,6 @@ public class RequestHelper {
 
     public static void orderBy(Query<?> query, Exchange exchange, String defaultValue, boolean descDefault) {
         query.order(exchange.query("order_by", defaultValue), exchange.query("order_desc", descDefault ? "true" : "false").equalsIgnoreCase("true"));
-        System.out.println(exchange.query("order_by", defaultValue));
-        System.out.println(exchange.query("order_desc", descDefault ? "true" : "false").equalsIgnoreCase("true"));
     }
 
     public static void defaultNavigation(Exchange exchange, Query<?> query) {

@@ -48,9 +48,9 @@ public class ShortenLinksController extends HttpController {
         shortenLink.longLink = request.longLink;
         checkLongLink(request.longLink);
 
-        Domain domain = getAndCheckDomainAccess(shortenLink.domain, user);
-        shortenLink.domain = domain.id;
 
+        Domain domain = getAndCheckDomainAccess(request.domain, user);
+        shortenLink.domain = domain.id;
 
         String path = "";
         if (request.path != null) {
@@ -83,8 +83,9 @@ public class ShortenLinksController extends HttpController {
         return new ShortenLinkResponse(shortenLink, domain);
     }
 
-    public Domain getAndCheckDomainAccess(String domainName, User user) {
-        Domain domain = Domain.byName(domainName);
+    public Domain getAndCheckDomainAccess(String domainId, User user) {
+        Domain domain = Domain.get(domainId);
+
         if (domain == null) {
             domain = Repo.get(Domain.class).where("is_public", true).first();
 
@@ -109,7 +110,6 @@ public class ShortenLinksController extends HttpController {
             throw new InvalidURLException();
         }
         for (Pattern linkFilter : Punyshort.getInstance().getLinkFilters()) {
-            System.out.println(linkFilter.pattern());
             if (linkFilter.matcher(longLink).matches()) {
                 throw new FilteredOutException();
             }
@@ -191,11 +191,19 @@ public class ShortenLinksController extends HttpController {
             throw new NotFoundException();
         accessToken.checkPermission("shorten_links:write");
 
-        if (request.domain != null) {
-            shortenLink.domain = getAndCheckDomainAccess(request.domain, user).name;
+        boolean checkPath = false;
+        if (request.path != null && !request.path.equals(shortenLink.path)) {
+            shortenLink.path = request.path;
+            checkPath = true;
         }
-        if (request.path != null) {
-            shortenLink.path = getAndCheckPath(request.path, user, Domain.get(shortenLink.domain));
+
+        if (request.domain != null && !request.domain.equals(shortenLink.domain)) {
+            shortenLink.domain = getAndCheckDomainAccess(request.domain, user).id;
+            checkPath = true;
+        }
+
+        if (checkPath) {
+            getAndCheckPath(shortenLink.path, user, Domain.get(shortenLink.domain));
         }
         if (request.longLink != null) {
             checkLongLink(request.longLink);

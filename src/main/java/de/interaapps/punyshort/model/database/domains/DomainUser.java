@@ -8,17 +8,17 @@ import java.sql.Timestamp;
 
 @Dates
 public class DomainUser extends Model {
-    @Column(id = true, size = 8)
-    public String id;
+    @Column(id = true)
+    public int id;
 
     @Column(size = 8)
-    private String domain;
+    public String domain;
 
     @Column(size = 8)
-    private String userId;
+    public String userId;
 
     @Column
-    private Role role = Role.MEMBER;
+    public Role role = Role.MEMBER;
 
     @Column
     public Timestamp createdAt;

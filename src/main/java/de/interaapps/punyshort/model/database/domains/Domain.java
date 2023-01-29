@@ -10,6 +10,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.javawebstack.abstractdata.AbstractArray;
 import org.javawebstack.abstractdata.AbstractObject;
 import org.javawebstack.httpclient.HTTPClient;
+import org.javawebstack.httpclient.HTTPRequest;
 import org.javawebstack.orm.Model;
 import org.javawebstack.orm.Repo;
 import org.javawebstack.orm.annotation.Column;
@@ -40,6 +41,10 @@ public class Domain extends Model {
 
     @Column
     @Filterable
+    public boolean locked = false;
+
+    @Column
+    @Filterable
     public boolean isPublic = false;
 
     @Column
@@ -57,10 +62,10 @@ public class Domain extends Model {
     }
 
     public boolean userHasAccess(User user) {
-        return Repo.get(DomainUser.class).where("domain", id).where("userId", user.id).first() == null;
+        return Repo.get(DomainUser.class).where("domain", id).where("userId", user.id).first() != null;
     }
     public void checkUserAccess(User user) {
-        if (userHasAccess(user)) {
+        if (!userHasAccess(user)) {
             throw new PermissionsDeniedException();
         }
     }
@@ -80,6 +85,18 @@ public class Domain extends Model {
         return Repo.get(Domain.class).where("name", domainName).where("isActive", true).first();
     }
 
+    public void addUser(User user, DomainUser.Role role) {
+        DomainUser domainUser = new DomainUser();
+        domainUser.userId = user.id;
+        domainUser.role = role;
+        domainUser.domain = id;
+        domainUser.save();
+    }
+
+    public DomainUser getUser(String userId) {
+        return Repo.get(DomainUser.class).where("domain", id).where("userId", userId).first();
+    }
+
     public enum DNSType {
         INTERNAL,
         CNAME,
@@ -95,9 +112,9 @@ public class Domain extends Model {
 
         switch (domain.dnsType) {
             case INTERNAL:
-            case CUSTOM_PROXY:
                 domain.isActive = true;
                 break;
+            case CUSTOM_PROXY:
             case CNAME:
                 if (!domain.dnsSettings.has("txt-entry"))
                     break;
@@ -109,13 +126,16 @@ public class Domain extends Model {
                 if (!domain.dnsSettings.has("cf-api-key") || !domain.dnsSettings.has("cf-zone-id"))
                     break;
 
-                domain.updateStatus();
+                domain.updateCloudflare();
 
                 domain.isActive = true;
                 break;
         }
 
         domain.save();
+        if (domain.isActive) {
+            Repo.get(Domain.class).where("name", domain.name).where("isActive", false).all().forEach(Domain::delete);
+        }
     }
 
     public void updateCloudflare() {
@@ -124,17 +144,26 @@ public class Domain extends Model {
 
         AbstractObject zones = cloudflare.get("/zones/" + dnsSettings.string("cf-zone-id", "ERR") + "/dns_records").data().object();
 
+        String type = "A";
+        String value = Punyshort.getInstance().getConfig().get("punyshort.default.redirect.proxy");
+
+        if ((name.length() - name.replaceAll("\\.", "").length()) > 1) {
+            type = "CNAME";
+            value = Punyshort.getInstance().getConfig().get("punyshort.default.cname");
+        }
+
         for (AbstractObject entry : zones.array("result").toObjectList()) {
             if (name.equalsIgnoreCase(entry.string("name"))) {
-                if (cloudflare.put("/zones/" + dnsSettings.string("cf-zone-id", "ERR") + "/dns_records/" + entry.string("id"))
+                HTTPRequest httpRequest = cloudflare.put("/zones/" + dnsSettings.string("cf-zone-id", "ERR") + "/dns_records/" + entry.string("id"))
                         .contentType("application/json")
                         .jsonBody(new AbstractObject()
-                                .set("type", "A")
+                                .set("type", type)
                                 .set("proxied", false)
                                 .set("ttl", 1)
                                 .set("name", name)
-                                .set("content", Punyshort.getInstance().getConfig().get("punyshort.default.redirect.proxy")))
-                        .status() > 400) {
+                                .set("content", value));
+                if (httpRequest.status() > 399) {
+                    System.out.println(httpRequest.string());
                     throw new InternalErrorException();
                 }
                 isActive = true;
@@ -142,15 +171,16 @@ public class Domain extends Model {
             }
         }
 
-        if (cloudflare.post("/zones/" + dnsSettings.string("cf-zone-id", "ERR") + "/dns_records")
+        HTTPRequest httpRequest = cloudflare.post("/zones/" + dnsSettings.string("cf-zone-id", "ERR") + "/dns_records")
                 .contentType("application/json")
                 .jsonBody(new AbstractObject()
-                        .set("type", "A")
+                        .set("type", type)
                         .set("proxied", false)
                         .set("ttl", 1)
                         .set("name", name)
-                        .set("content", Punyshort.getInstance().getConfig().get("punyshort.default.redirect.proxy")))
-                .status() > 400) {
+                        .set("content", value));
+        if (httpRequest.status() > 399) {
+            System.out.println(httpRequest.string());
             throw new InternalErrorException();
         }
     }

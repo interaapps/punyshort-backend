@@ -1,4 +1,4 @@
 package de.interaapps.punyshort.exceptions;
 
-public class PathTakenException extends RuntimeException {
+public class PathTakenException extends BadRequestException {
 }

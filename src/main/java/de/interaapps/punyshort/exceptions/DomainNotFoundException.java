@@ -1,4 +1,4 @@
 package de.interaapps.punyshort.exceptions;
 
-public class DomainNotFoundException extends RuntimeException {
+public class DomainNotFoundException extends NotFoundException {
 }

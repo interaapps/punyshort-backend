@@ -1,4 +1,4 @@
 package de.interaapps.punyshort.exceptions;
 
-public class InvalidURLException extends RuntimeException {
+public class InvalidURLException extends BadRequestException {
 }

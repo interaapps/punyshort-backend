@@ -29,11 +29,12 @@ public class FollowController extends HttpController {
     @Post
     @With("auth")
     public ShortenLinkResponse follow(@Body FollowLinkRequest request, @Attrib("user") User user) {
-        System.out.println(new Gson().toJson(request));
         Domain domain = Domain.byName(request.domain);
         ShortenLink shortenLink = ShortenLink.get(domain, request.path);
 
-        domain.checkUserAccess(user);
+        if (user.type != User.Type.ADMIN) {
+            domain.checkUserAccess(user);
+        }
 
         if (shortenLink == null)
             throw new NotFoundException();

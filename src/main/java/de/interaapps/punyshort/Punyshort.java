@@ -3,6 +3,7 @@ package de.interaapps.punyshort;
 import de.interaapps.punyshort.auth.*;
 import de.interaapps.punyshort.controller.HttpController;
 import de.interaapps.punyshort.exceptions.AuthenticationException;
+import de.interaapps.punyshort.exceptions.BadRequestException;
 import de.interaapps.punyshort.exceptions.NotFoundException;
 import de.interaapps.punyshort.model.database.AccessToken;
 import de.interaapps.punyshort.model.database.LinkFilter;
@@ -112,6 +113,7 @@ public class Punyshort {
         map.put("OAUTH2_DISCORD_CLIENT_SECRET", "oauth2.discord.secret");
 
         map.put("PUNYSHORT_DEFAULT_REDIRECT_PROXY", "punyshort.default.redirect.proxy");
+        map.put("PUNYSHORT_DEFAULT_CNAME", "punyshort.default.cname");
 
         File file = new File(".env");
         if (file.exists()) {
@@ -173,6 +175,8 @@ public class Punyshort {
                 exchange.status(401);
             } else if (throwable instanceof NotFoundException) {
                 exchange.status(404);
+            } else if (throwable instanceof BadRequestException) {
+                exchange.status(400);
             } else {
                 exchange.status(500);
             }

@@ -6,16 +6,14 @@ import de.interaapps.punyshort.model.database.domains.Domain;
 public class ShortenLinkResponse {
     public String id;
     public String longLink;
-    public String domain;
-    public String domainId;
+    public Domain domain;
     public String path;
     public String fullLink;
     public ShortenLink.Type type;
     public CompactStats compactStats;
 
     public ShortenLinkResponse(ShortenLink shortenLink, Domain domain) {
-        this.domain = domain.name;
-        this.domainId = domain.id;
+        this.domain = domain;
         this.id = shortenLink.id;
         this.path = shortenLink.path;
         this.type = shortenLink.type;
