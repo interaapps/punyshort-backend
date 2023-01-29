@@ -111,6 +111,8 @@ public class Punyshort {
         map.put("OAUTH2_DISCORD_CLIENT_ID", "oauth2.discord.id");
         map.put("OAUTH2_DISCORD_CLIENT_SECRET", "oauth2.discord.secret");
 
+        map.put("PUNYSHORT_DEFAULT_REDIRECT_PROXY", "punyshort.default.redirect.proxy");
+
         File file = new File(".env");
         if (file.exists()) {
             config.add(new EnvFile(file).withVariables(), map);

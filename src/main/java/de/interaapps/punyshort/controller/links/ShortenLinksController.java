@@ -54,7 +54,7 @@ public class ShortenLinksController extends HttpController {
 
         String path = "";
         if (request.path != null) {
-            path = getAndCheckPath(request.path, domain.name);
+            path = getAndCheckPath(request.path, user, domain);
         } else {
             do {
                 path = RandomStringUtils.random(8, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890");
@@ -116,17 +116,20 @@ public class ShortenLinksController extends HttpController {
         }
     }
 
-    public String getAndCheckPath(String path, String domain) {
+    public String getAndCheckPath(String path, User user, Domain domain) {
         path = path.trim();
+
         if (path.length() == 0)
             throw new InvalidPathException();
+        if (domain.isPublic && path.length() <= 6 && !domain.userHasAccess(user))
+            throw new PathTooShortException();
         if (path.charAt(0) == '/')
             path = path.substring(1);
         if (!Pattern.matches("^([a-zA-Z0-9-_/])*$", path))
             throw new InvalidPathException();
-        if (ShortenLink.get(domain, path) != null) {
+        if (ShortenLink.get(domain, path) != null)
             throw new PathTakenException();
-        }
+
         return path;
     }
 
@@ -192,7 +195,7 @@ public class ShortenLinksController extends HttpController {
             shortenLink.domain = getAndCheckDomainAccess(request.domain, user).name;
         }
         if (request.path != null) {
-            shortenLink.path = getAndCheckPath(request.path, shortenLink.domain);
+            shortenLink.path = getAndCheckPath(request.path, user, Domain.get(shortenLink.domain));
         }
         if (request.longLink != null) {
             checkLongLink(request.longLink);

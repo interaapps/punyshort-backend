@@ -9,9 +9,7 @@ public class FollowLinkRequest {
 
     public String referrer;
 
-    @Rule({"string(4)"})
     public String domain;
 
-    @Rule({"string(1)"})
     public String path;
 }

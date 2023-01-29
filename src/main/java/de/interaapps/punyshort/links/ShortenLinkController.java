@@ -15,8 +15,6 @@ public class ShortenLinkController {
    @Post
    @With({"blocked-check"})
    public ActionResponse create(@Body ShortenLinkRequest request, @Attrib("user") User user, @Attrib("token") AccessToken token) {
-
-
         return new ActionResponse(true);
    }
 }
