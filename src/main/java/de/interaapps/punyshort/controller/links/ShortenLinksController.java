@@ -119,9 +119,7 @@ public class ShortenLinksController extends HttpController {
     public String getAndCheckPath(String path, User user, Domain domain) {
         path = path.trim();
 
-        if (path.length() == 0)
-            throw new InvalidPathException();
-        if (domain.isPublic && path.length() <= 6 && !domain.userHasAccess(user))
+        if (domain.isPublic && (path.length() <= 6 || path.contains("/")) && !domain.userHasAccess(user))
             throw new PathTooShortException();
         if (path.charAt(0) == '/')
             path = path.substring(1);

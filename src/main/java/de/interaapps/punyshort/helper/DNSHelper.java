@@ -7,6 +7,7 @@ import javax.naming.directory.DirContext;
 public class DNSHelper {
     public static String getTxtRecord(String hostName) {
         java.util.Hashtable<String, String> env = new java.util.Hashtable<>();
+        System.setProperty("com.sun.jndi.dns.cache.ttl", "0");
         env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
 
         try {

@@ -5,6 +5,7 @@ import de.interaapps.punyshort.controller.HttpController;
 import de.interaapps.punyshort.exceptions.AuthenticationException;
 import de.interaapps.punyshort.exceptions.BadRequestException;
 import de.interaapps.punyshort.exceptions.NotFoundException;
+import de.interaapps.punyshort.helper.DNSHelper;
 import de.interaapps.punyshort.model.database.AccessToken;
 import de.interaapps.punyshort.model.database.LinkFilter;
 import de.interaapps.punyshort.model.database.User;
