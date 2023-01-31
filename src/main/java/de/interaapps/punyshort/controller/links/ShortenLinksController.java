@@ -45,7 +45,7 @@ public class ShortenLinksController extends HttpController {
 
         shortenLink.type = ShortenLink.Type.SHORTEN_LINK;
 
-        if (!shortenLink.longLink.contains("://")) {
+        if (!request.longLink.contains("://")) {
             throw new InvalidLinkException();
         }
 
