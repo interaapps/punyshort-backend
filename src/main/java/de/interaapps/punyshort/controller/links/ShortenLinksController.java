@@ -45,6 +45,10 @@ public class ShortenLinksController extends HttpController {
 
         shortenLink.type = ShortenLink.Type.SHORTEN_LINK;
 
+        if (!shortenLink.longLink.contains("://")) {
+            throw new InvalidLinkException();
+        }
+
         shortenLink.longLink = request.longLink;
         checkLongLink(request.longLink);
 
@@ -119,7 +123,7 @@ public class ShortenLinksController extends HttpController {
     public String getAndCheckPath(String path, User user, Domain domain) {
         path = path.trim();
 
-        if (domain.isPublic && (path.length() <= 6 || path.contains("/")) && !domain.userHasAccess(user))
+        if (domain.isPublic && (path.length() <= 6 || path.contains("/")) && (user == null || !domain.userHasAccess(user)))
             throw new PathTooShortException();
         if (path.charAt(0) == '/')
             path = path.substring(1);

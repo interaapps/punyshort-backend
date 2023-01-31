@@ -1,8 +1,8 @@
 package de.interaapps.punyshort.controller.links;
 
-import com.google.gson.Gson;
 import de.interaapps.punyshort.controller.HttpController;
 import de.interaapps.punyshort.exceptions.NotFoundException;
+import de.interaapps.punyshort.helper.ipgeography.*;
 import de.interaapps.punyshort.model.database.ShortenLink;
 import de.interaapps.punyshort.model.database.User;
 import de.interaapps.punyshort.model.database.cache.IPAddressCountryCodeCache;
@@ -10,8 +10,6 @@ import de.interaapps.punyshort.model.database.domains.Domain;
 import de.interaapps.punyshort.model.database.stats.*;
 import de.interaapps.punyshort.model.requests.links.FollowLinkRequest;
 import de.interaapps.punyshort.model.responses.links.ShortenLinkResponse;
-import org.javawebstack.abstractdata.AbstractObject;
-import org.javawebstack.httpclient.HTTPClient;
 import org.javawebstack.httpserver.router.annotation.PathPrefix;
 import org.javawebstack.httpserver.router.annotation.With;
 import org.javawebstack.httpserver.router.annotation.params.Attrib;
@@ -21,9 +19,19 @@ import org.javawebstack.orm.Repo;
 
 import java.sql.Date;
 import java.util.Calendar;
+import java.util.Random;
+import java.util.regex.Pattern;
 
 @PathPrefix("/v1/follow")
 public class FollowController extends HttpController {
+
+    public static IPGeographyProvider[] IP_GEOGRAPHY_PROVIDERS = {
+            new IP2CProvider(),
+            new IPApiProvider(),
+            new IPLocateProvider(),
+            new IPInfoProvider()
+    };
+
     private int threads = 0;
 
     @Post
@@ -51,11 +59,11 @@ public class FollowController extends HttpController {
             if (ipAddressCountryCodeCache == null) {
                 if (threads < 50) {
                     new Thread(() -> {
-                        AbstractObject data = new HTTPClient().get("https://www.iplocate.io/api/lookup/" + request.ip).data().object();
+                        IPGeographyProvider provider = IP_GEOGRAPHY_PROVIDERS[new Random().nextInt(IP_GEOGRAPHY_PROVIDERS.length-1)];
 
                         IPAddressCountryCodeCache newIpAddressCache = new IPAddressCountryCodeCache();
                         newIpAddressCache.ip = request.ip;
-                        newIpAddressCache.countryCode = data.string("country_code", "UNKN");
+                        newIpAddressCache.countryCode = Pattern.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$\n", request.ip) ? provider.fetch(newIpAddressCache.ip) : "UNKN";
                         newIpAddressCache.save();
                         pushCountryStats(shortenLinkClickStats, newIpAddressCache, true);
                     }).start();
