@@ -24,6 +24,7 @@ public class ShortenLinkResponse {
     public ShortenLinkResponse(ShortenLink shortenLink) {
         this(shortenLink, Domain.get(shortenLink.domain));
     }
+
     public static class CompactStats {
         public int total;
         public String mostVisitingCountry;

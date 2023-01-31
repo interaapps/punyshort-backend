@@ -143,6 +143,8 @@ public class ShortenLinksController extends HttpController {
 
         Query<ShortenLink> userLinks = Repo.get(ShortenLink.class).where("userId", user.id);
 
+        userLinks.whereExists(Domain.class, d -> d.where(ShortenLink.class, "domain", "=", Domain.class, "name"));
+
         RequestHelper.defaultNavigation(exchange, userLinks);
         RequestHelper.orderBy(userLinks, exchange, "created_at", true);
 
