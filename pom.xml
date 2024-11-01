@@ -47,7 +47,7 @@
         <dependency>
             <groupId>com.github.JavaWebStack</groupId>
             <artifactId>Passport</artifactId>
-            <version>ac887a3a76</version>
+            <version>d25b5d9c2a</version>
         </dependency>
 
         <dependency>
