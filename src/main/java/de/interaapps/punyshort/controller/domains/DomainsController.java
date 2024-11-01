@@ -115,6 +115,17 @@ public class DomainsController extends HttpController {
         return new DomainResponse(domain, true);
     }
 
+
+    @Get("/domain-exists")
+    public String checkAllowHTTPS(@org.javawebstack.httpserver.router.annotation.params.Query("domain") String domainName) {
+        Domain domain = Domain.byName(domainName);
+
+        if (domain == null)
+            throw new NotFoundException();
+
+        return "{\"allow\": true}";
+    }
+
     @Get("/{id}")
     public DomainResponse get(@Path("id") String id, @Attrib("token") AccessToken accessToken, @Attrib("user") User user) {
         Domain domain = Domain.get(id, false);
@@ -128,16 +139,6 @@ public class DomainsController extends HttpController {
         }
 
         return new DomainResponse(domain, true);
-    }
-
-    @Get("/allow-https/{domain}")
-    public String checkAllowHTTPS(@Path("domain") String domainName) {
-        Domain domain = Domain.byName(domainName);
-
-        if (domain == null)
-            throw new NotFoundException();
-
-        return "{\"allow\": true}";
     }
 
 

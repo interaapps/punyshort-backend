@@ -68,6 +68,7 @@ public class FollowController extends HttpController {
                         newIpAddressCache.countryCode = Pattern.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$\n", request.ip) ? provider.fetch(newIpAddressCache.ip) : "UNKN";
                         newIpAddressCache.save();
                         pushCountryStats(shortenLinkClickStats, newIpAddressCache, true);
+                        System.out.println("Using " + provider.getClass().getName() + " checking ip " + request.ip + " " + "newIpAddressCache.countryCode");
                         threads--;
                     }).start();
                 }
