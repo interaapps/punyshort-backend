@@ -3,6 +3,7 @@ package de.interaapps.punyshort.controller.links;
 import de.interaapps.punyshort.controller.HttpController;
 import de.interaapps.punyshort.exceptions.NotFoundException;
 import de.interaapps.punyshort.helper.ipgeography.*;
+import de.interaapps.punyshort.model.database.AccessToken;
 import de.interaapps.punyshort.model.database.ShortenLink;
 import de.interaapps.punyshort.model.database.User;
 import de.interaapps.punyshort.model.database.cache.IPAddressCountryCodeCache;
@@ -36,11 +37,11 @@ public class FollowController extends HttpController {
 
     @Post
     @With("auth")
-    public ShortenLinkResponse follow(@Body FollowLinkRequest request, @Attrib("user") User user) {
+    public ShortenLinkResponse follow(@Body FollowLinkRequest request, @Attrib("user") User user, @Attrib("token") AccessToken accessToken) {
         Domain domain = Domain.byName(request.domain);
         ShortenLink shortenLink = ShortenLink.get(domain, request.path);
 
-        if (user.type != User.Type.ADMIN) {
+        if (user.type != User.Type.ADMIN && accessToken.type != AccessToken.Type.ADMIN_REDIRECT_PROXY_INSTANCE) {
             domain.checkUserAccess(user);
         }
 
@@ -58,6 +59,7 @@ public class FollowController extends HttpController {
 
             if (ipAddressCountryCodeCache == null) {
                 if (threads < 50) {
+                    threads++;
                     new Thread(() -> {
                         IPGeographyProvider provider = IP_GEOGRAPHY_PROVIDERS[new Random().nextInt(IP_GEOGRAPHY_PROVIDERS.length-1)];
 
@@ -66,8 +68,8 @@ public class FollowController extends HttpController {
                         newIpAddressCache.countryCode = Pattern.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$\n", request.ip) ? provider.fetch(newIpAddressCache.ip) : "UNKN";
                         newIpAddressCache.save();
                         pushCountryStats(shortenLinkClickStats, newIpAddressCache, true);
+                        threads--;
                     }).start();
-                    threads++;
                 }
             } else {
                 pushCountryStats(shortenLinkClickStats, ipAddressCountryCodeCache, false);

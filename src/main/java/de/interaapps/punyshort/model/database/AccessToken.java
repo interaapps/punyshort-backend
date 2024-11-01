@@ -49,6 +49,9 @@ public class AccessToken extends Model {
     }
 
     public boolean hasPermission(String permission) {
+        if (type == Type.ADMIN_REDIRECT_PROXY_INSTANCE)
+            return true;
+
         if (permission.equals(""))
             return true;
 
@@ -60,6 +63,9 @@ public class AccessToken extends Model {
      * or punyshort.ga|link:read (Will passthrough the request but adds a user-id header)
      */
     public void checkPermission(String... permissions) {
+        if (type == Type.ADMIN_REDIRECT_PROXY_INSTANCE)
+            return;
+
         for (String permission : permissions) {
             if (hasPermission(permission))
                 return;
@@ -84,6 +90,6 @@ public class AccessToken extends Model {
     }
 
     public enum Type {
-        API, USER, REDIRECT_PROXY_INSTANCE, ACCESS_TOKEN
+        API, USER, REDIRECT_PROXY_INSTANCE, ADMIN_REDIRECT_PROXY_INSTANCE, ACCESS_TOKEN
     }
 }

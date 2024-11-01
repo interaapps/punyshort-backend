@@ -130,6 +130,16 @@ public class DomainsController extends HttpController {
         return new DomainResponse(domain, true);
     }
 
+    @Get("/allow-https/{domain}")
+    public String checkAllowHTTPS(@Path("domain") String domainName) {
+        Domain domain = Domain.byName(domainName);
+
+        if (domain == null)
+            throw new NotFoundException();
+
+        return "{\"allow\": true}";
+    }
+
 
     @Delete("/{id}")
     @With("auth")

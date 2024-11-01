@@ -1,6 +1,7 @@
 package de.interaapps.punyshort.controller.user;
 
 import de.interaapps.punyshort.controller.HttpController;
+import de.interaapps.punyshort.exceptions.PermissionsDeniedException;
 import de.interaapps.punyshort.model.database.AccessToken;
 import de.interaapps.punyshort.model.database.User;
 import de.interaapps.punyshort.model.requests.auth.CreateAccessTokenRequest;
@@ -30,6 +31,11 @@ public class AccessTokenController extends HttpController {
         CreateAccessTokenResponse response = new CreateAccessTokenResponse();
         AccessToken accessToken = new AccessToken();
         AccessToken userAccessToken = Repo.get(AccessToken.class).where("userId", user.getId()).order("createdAt", true).first();
+
+        if (userAccessToken.type == AccessToken.Type.USER && user.type != User.Type.ADMIN) {
+            throw new PermissionsDeniedException();
+        }
+
         if (userAccessToken != null) {
             if (request.type != AccessToken.Type.USER) {
                 accessToken.type = request.type;
