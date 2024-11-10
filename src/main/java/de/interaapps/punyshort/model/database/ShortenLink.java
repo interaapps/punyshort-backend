@@ -5,12 +5,15 @@ import de.interaapps.punyshort.exceptions.NotFoundException;
 import de.interaapps.punyshort.exceptions.PermissionsDeniedException;
 import de.interaapps.punyshort.model.database.domains.Domain;
 import de.interaapps.punyshort.model.database.stats.*;
+import de.interaapps.punyshort.model.database.workspaces.Workspace;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.javawebstack.orm.Model;
 import org.javawebstack.orm.Repo;
 import org.javawebstack.orm.annotation.*;
 
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Dates
 @SoftDelete
@@ -21,6 +24,7 @@ public class ShortenLink extends Model {
     public String id;
 
     @Column(size = 8)
+    @Filterable
     public String userId;
 
     @Column
@@ -29,6 +33,7 @@ public class ShortenLink extends Model {
 
     @Column
     @Searchable
+    @Filterable
     public String domain;
 
     @Column
@@ -42,7 +47,13 @@ public class ShortenLink extends Model {
 
     @Column
     @Searchable
+    @Filterable
     public Type type = Type.SHORTEN_LINK;
+
+
+    @Column(size = 8)
+    @Filterable
+    public String workspaceId = null;
 
     @Column
     public Timestamp createdAt;
@@ -74,8 +85,17 @@ public class ShortenLink extends Model {
     }
 
     public void checkUserAccess(User user) {
-        if (!userId.equals(user.id))
-            throw new PermissionsDeniedException();
+        if (workspaceId != null) {
+            Workspace workspace = Workspace.getById(workspaceId);
+
+            if (workspace != null && workspace.getUser(user) != null)
+                return;
+        }
+
+        if (userId.equals(user.id))
+            return;
+
+        throw new PermissionsDeniedException();
     }
 
     public void saveAndUpdateLinkCache(Domain domain) {
@@ -85,6 +105,10 @@ public class ShortenLink extends Model {
 
     public void saveAndUpdateLinkCache() {
         saveAndUpdateLinkCache(Domain.get(domain));
+    }
+
+    public List<String> getTags() {
+        return Repo.get(ShortenLinkTag.class).where("linkId", id).get().stream().map(t -> t.tag).collect(Collectors.toList());
     }
 
     @Override

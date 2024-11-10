@@ -72,7 +72,8 @@ public class DomainsController extends HttpController {
 
     @Post
     @With("auth")
-    public DomainResponse create(@Body CreateDomainRequest request, @Attrib("user") User user) {
+    public DomainResponse create(@Body CreateDomainRequest request, @Attrib("user") User user, @Attrib("token") AccessToken accessToken) {
+        accessToken.checkPermission("domains:write");
         Domain domain = new Domain();
 
         request.name = request.name.toLowerCase();
@@ -167,6 +168,8 @@ public class DomainsController extends HttpController {
     @Post("/{id}/dns-check")
     @With("auth")
     public ActionResponse triggerDomainCheck(@Path("id") String id, @Attrib("token") AccessToken accessToken, @Attrib("user") User user) {
+        accessToken.checkPermission("domains:write");
+
         Domain domain = Domain.get(id, false);
         if (domain == null)
             throw new NotFoundException();
@@ -175,7 +178,6 @@ public class DomainsController extends HttpController {
         if (domainUser == null || domainUser.role != DomainUser.Role.ADMIN)
             throw new PermissionsDeniedException();
 
-        accessToken.checkPermission("domains:write");
 
         domain.updateStatus();
 

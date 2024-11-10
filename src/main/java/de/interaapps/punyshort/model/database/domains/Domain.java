@@ -6,6 +6,8 @@ import de.interaapps.punyshort.exceptions.PermissionsDeniedException;
 import de.interaapps.punyshort.helper.DNSHelper;
 import de.interaapps.punyshort.model.database.AccessToken;
 import de.interaapps.punyshort.model.database.User;
+import de.interaapps.punyshort.model.database.workspaces.WorkspaceDomain;
+import de.interaapps.punyshort.model.database.workspaces.WorkspaceUser;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.javawebstack.abstractdata.AbstractArray;
 import org.javawebstack.abstractdata.AbstractObject;
@@ -183,5 +185,23 @@ public class Domain extends Model {
             System.out.println(httpRequest.string());
             throw new InternalErrorException();
         }
+    }
+
+    public static Query<Domain> getByWorkspace(String workspaceId, User user) {
+        return Repo.get(Domain.class).query()
+            .whereExists(WorkspaceDomain.class, q -> {
+                if (user != null) {
+                    q.whereExists(WorkspaceUser.class, w ->
+                        w.where(WorkspaceUser.class, "workspaceId" ,"=", WorkspaceDomain.class, "workspaceId")
+                            .where("userId", user.id)
+                    );
+                }
+                return q.where("workspaceId", workspaceId).where(Domain.class, "id", "=", WorkspaceDomain.class, "domainId");
+            }
+        );
+    }
+
+    public static Query<Domain> getByWorkspace(String workspaceId) {
+        return getByWorkspace(workspaceId, null);
     }
 }

@@ -1,8 +1,7 @@
 package de.interaapps.punyshort.helper;
 
-import de.interaapps.punyshort.Punyshort;
-import de.interaapps.punyshort.exceptions.PermissionsDeniedException;
-import de.interaapps.punyshort.model.database.User;
+import de.interaapps.punyshort.model.database.ShortenLink;
+import de.interaapps.punyshort.model.database.ShortenLinkTag;
 import de.interaapps.punyshort.model.responses.PaginationData;
 import org.javawebstack.abstractdata.AbstractObject;
 import org.javawebstack.httpserver.Exchange;
@@ -36,20 +35,28 @@ public class RequestHelper {
         return paginationData;
     }
 
-    public static void queryFilter(Query<?> query, AbstractObject params) {
+    public static Map<String, String> getQueryFilter(AbstractObject params) {
         Map<String, String> filters = new HashMap<>();
         params.forEach((key, value) -> {
-            if ((key.startsWith("filter_") && key.endsWith("]")) || key.startsWith("filter%5B") && key.endsWith("%5D")) {
+            if ((key.startsWith("filter_")) || key.startsWith("filter%5B") && key.endsWith("%5D") || key.startsWith("filter[") && key.endsWith("]")) {
                 filters.put(key
                                 .replace("filter[", "")
-                                .replace("]", "")
                                 .replace("filter%5B", "")
+                                .replace("%5D", "")
+                                .replace("]", "")
+                                .replace("filter_", "")
                                 .replace("%5D", ""),
                         value.string()
                 );
             }
         });
-        if (filters.size() > 0)
+        return filters;
+    }
+
+    public static void queryFilter(Query<?> query, AbstractObject params) {
+        Map<String, String> filters = getQueryFilter(params);
+
+        if (!filters.isEmpty())
             query.filter(filters);
     }
 
@@ -61,5 +68,15 @@ public class RequestHelper {
     public static void defaultNavigation(Exchange exchange, Query<?> query) {
         query.search(exchange.query("search"));
         queryFilter(query, exchange.getQueryParameters());
+    }
+
+    public static void filterTags(Query<ShortenLink> query, AbstractObject params) {
+        if (params.has("filter_tags")) {
+            String[] filterTags = params.get("filter_tags").string().split(",");
+
+            for (String filterTag : filterTags) {
+                query.whereExists(ShortenLinkTag.class, (pasteTagQuery) -> pasteTagQuery.where("tag", filterTag).where(ShortenLinkTag.class, "linkId", "=", ShortenLink.class, "id"));
+            }
+        }
     }
 }

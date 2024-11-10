@@ -103,6 +103,14 @@ public class User extends Model {
         BLOCKED
     }
 
+    public static User getById(String id) {
+        return Repo.get(User.class).where("id", id).first();
+    }
+
+    public static User getByMail(String mail) {
+        return Repo.get(User.class).where("eMail", mail).first();
+    }
+
     public String getId() {
         return id;
     }

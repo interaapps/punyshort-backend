@@ -60,7 +60,7 @@ public class AccessToken extends Model {
 
     /**
      * Standard: group.permission:action
-     * or punyshort.ga|link:read (Will passthrough the request but adds a user-id header)
+     * or punyshort|link:read (Will passthrough the request but adds a user-id header, <a href="https://intera.dev/docs/accounts/app-access">InteraApps AccountsDocumentation</a>)
      */
     public void checkPermission(String... permissions) {
         if (type == Type.ADMIN_REDIRECT_PROXY_INSTANCE)

@@ -7,10 +7,14 @@ import de.interaapps.punyshort.helper.DatabaseHelper;
 import de.interaapps.punyshort.helper.RequestHelper;
 import de.interaapps.punyshort.model.database.AccessToken;
 import de.interaapps.punyshort.model.database.ShortenLink;
+import de.interaapps.punyshort.model.database.ShortenLinkTag;
 import de.interaapps.punyshort.model.database.User;
 import de.interaapps.punyshort.model.database.domains.Domain;
 import de.interaapps.punyshort.model.database.stats.ShortenLinkClickPerDateStats;
 import de.interaapps.punyshort.model.database.stats.ShortenLinkCountriesStats;
+import de.interaapps.punyshort.model.database.workspaces.Workspace;
+import de.interaapps.punyshort.model.database.workspaces.WorkspaceDomain;
+import de.interaapps.punyshort.model.database.workspaces.WorkspaceUser;
 import de.interaapps.punyshort.model.requests.links.ShortenLinkRequest;
 import de.interaapps.punyshort.model.responses.ActionResponse;
 import de.interaapps.punyshort.model.responses.PaginatedResponse;
@@ -53,7 +57,7 @@ public class ShortenLinksController extends HttpController {
         checkLongLink(request.longLink);
 
 
-        Domain domain = getAndCheckDomainAccess(request.domain, user);
+        Domain domain = getAndCheckDomainAccess(request.domain, user, request.workspaceId);
         shortenLink.domain = domain.id;
 
         String path = "";
@@ -65,7 +69,7 @@ public class ShortenLinksController extends HttpController {
             } while (ShortenLink.get(domain, path) != null);
         }
 
-        if (path.equals("")) {
+        if (path.isEmpty()) {
             if (!domain.isPublic) {
                 if (user == null) {
                     throw new AuthenticationException();
@@ -82,12 +86,37 @@ public class ShortenLinksController extends HttpController {
             shortenLink.userId = user.id;
         }
 
+
+        if (request.workspaceId != null) {
+            if (user == null) throw new AuthenticationException();
+
+            accessToken.checkPermission("workspaces:write");
+
+            Workspace workspace = Workspace.getById(request.workspaceId);
+
+            if (workspace == null) throw new NotFoundException();
+
+            WorkspaceUser workspaceUser = workspace.getUser(user.id);
+            if (workspaceUser == null) throw new PermissionsDeniedException();
+
+            shortenLink.workspaceId = workspace.id;
+        }
+
         shortenLink.saveAndUpdateLinkCache(domain);
+
+        if (request.tags != null) {
+            for (String tag : request.tags) {
+                ShortenLinkTag sTag = new ShortenLinkTag();
+                sTag.linkId = shortenLink.id;
+                sTag.tag = tag;
+                sTag.save();
+            }
+        }
 
         return new ShortenLinkResponse(shortenLink, domain);
     }
 
-    public Domain getAndCheckDomainAccess(String domainId, User user) {
+    public Domain getAndCheckDomainAccess(String domainId, User user, String workspaceId) {
         Domain domain = Domain.get(domainId);
 
         if (domain == null) {
@@ -97,6 +126,19 @@ public class ShortenLinksController extends HttpController {
                 System.err.println("You have no domains set up");
                 throw new NoDefaultDomainFoundException();
             }
+        }
+
+        if (workspaceId != null) {
+            Workspace workspace = Workspace.getById(workspaceId);
+            WorkspaceDomain workspaceDomain = workspace.getDomain(domainId);
+
+            if (workspace.getUser(user.id) == null)
+                throw new PermissionsDeniedException();
+
+            if (workspaceDomain == null && !domain.isPublic)
+                throw new PermissionsDeniedException();
+            else
+                return domain;
         }
 
         if (!domain.isPublic) {
@@ -141,14 +183,31 @@ public class ShortenLinksController extends HttpController {
     public PaginatedResponse<ShortenLinkResponse> getAll(Exchange exchange, @Attrib("user") User user, @Attrib("token") AccessToken accessToken) {
         accessToken.checkPermission("shorten_links:read");
 
-        Query<ShortenLink> userLinks = Repo.get(ShortenLink.class).where("userId", user.id);
+        Query<ShortenLink> userLinks = Repo.get(ShortenLink.class).query();
+
+        userLinks.and(q -> {
+            q.where("userId", user.id);
+            q.orWhere(orQuery -> orQuery
+                .whereNotNull("workspaceId")
+                .whereExists(Workspace.class, w -> w
+                .where(Workspace.class, "id", "=", ShortenLink.class, "workspaceId")
+                .whereExists(WorkspaceUser.class, u ->
+                    u.where(WorkspaceUser.class, "workspaceId", "=", Workspace.class, "id")
+                        .where("userId", user.id)
+                        .where("state", WorkspaceUser.State.ACCEPTED)
+                )
+            ));
+            return q;
+        });
 
         userLinks.whereExists(Domain.class, d -> d.where(ShortenLink.class, "domain", "=", Domain.class, "id"));
 
         RequestHelper.defaultNavigation(exchange, userLinks);
+        RequestHelper.filterTags(userLinks, exchange.getQueryParameters());
         RequestHelper.orderBy(userLinks, exchange, "created_at", true);
 
         PaginationData pagination = RequestHelper.pagination(userLinks, exchange);
+
         return new PaginatedResponse<>(userLinks.all().stream().map(r -> {
             ShortenLinkResponse shortenLinkResponse = new ShortenLinkResponse(r);
 
@@ -181,7 +240,9 @@ public class ShortenLinksController extends HttpController {
         ShortenLink shortenLink = ShortenLink.get(id);
         if (shortenLink == null)
             throw new NotFoundException();
+
         accessToken.checkPermission("shorten_links:delete");
+        shortenLink.checkUserAccess(user);
 
         shortenLink.delete();
         return new ActionResponse(true);
@@ -193,7 +254,9 @@ public class ShortenLinksController extends HttpController {
         ShortenLink shortenLink = ShortenLink.get(id);
         if (shortenLink == null)
             throw new NotFoundException();
+
         accessToken.checkPermission("shorten_links:write");
+        shortenLink.checkUserAccess(user);
 
         boolean checkPath = false;
         if (request.path != null && !request.path.equals(shortenLink.path)) {
@@ -202,7 +265,7 @@ public class ShortenLinksController extends HttpController {
         }
 
         if (request.domain != null && !request.domain.equals(shortenLink.domain)) {
-            shortenLink.domain = getAndCheckDomainAccess(request.domain, user).id;
+            shortenLink.domain = getAndCheckDomainAccess(request.domain, user, shortenLink.workspaceId).id;
             checkPath = true;
         }
 
@@ -212,6 +275,19 @@ public class ShortenLinksController extends HttpController {
         if (request.longLink != null) {
             checkLongLink(request.longLink);
             shortenLink.longLink = request.longLink;
+        }
+
+        if (request.tags != null) {
+            List<String> tags = shortenLink.getTags();
+            request.tags.stream().filter(t -> !tags.contains(t)).forEach(tag -> {
+                ShortenLinkTag pTag = new ShortenLinkTag();
+                pTag.linkId = shortenLink.id;
+                pTag.tag = tag;
+                pTag.save();
+            });
+            tags.stream().filter(t -> !request.tags.contains(t)).forEach(t -> {
+                Repo.get(ShortenLinkTag.class).where("linkId", shortenLink.id).where("tag", t).delete();
+            });
         }
 
         shortenLink.saveAndUpdateLinkCache();
