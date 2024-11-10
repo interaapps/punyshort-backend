@@ -1,11 +1,13 @@
 package de.interaapps.punyshort.model.database.workspaces;
 
 import de.interaapps.punyshort.model.database.User;
+import de.interaapps.punyshort.model.database.domains.Domain;
 import org.javawebstack.orm.Model;
 import org.javawebstack.orm.Repo;
 import org.javawebstack.orm.annotation.Column;
 import org.javawebstack.orm.annotation.Dates;
 import org.javawebstack.orm.annotation.Table;
+import org.javawebstack.orm.query.Query;
 
 import java.sql.Timestamp;
 
@@ -49,5 +51,14 @@ public class WorkspaceUser extends Model {
 
     public Workspace getWorkspace() {
         return Workspace.getById(workspaceId);
+    }
+
+
+    public static Query<WorkspaceUser> getByWorkspace(String workspaceId) {
+        return Repo.get(WorkspaceUser.class).query()
+            .where("workspaceId", workspaceId)
+            .whereExists(Workspace.class, q ->
+                    q.where(Workspace.class, "id", "=", WorkspaceUser.class, "workspaceId")
+            );
     }
 }

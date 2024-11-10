@@ -47,10 +47,7 @@ public class WorkspaceDomainsController extends HttpController {
 
         if (workspace == null) throw new NotFoundException();
 
-        WorkspaceUser workspaceUser = workspace.getUser(user.id);
-
-        if (workspaceUser == null || workspaceUser.role != WorkspaceUser.Role.ADMIN)
-            throw new PermissionsDeniedException();
+        WorkspaceUser workspaceUser = workspace.getUserOrFail(user.id);
 
         Query<Domain> workspaceDomainsQuery = Domain.getByWorkspace(workspace.id, user);
 

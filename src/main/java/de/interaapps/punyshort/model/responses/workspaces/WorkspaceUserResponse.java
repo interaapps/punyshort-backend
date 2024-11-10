@@ -22,12 +22,14 @@ public class WorkspaceUserResponse {
 
     public WorkspaceUserResponse(WorkspaceUser workspaceUser) {
         User user = workspaceUser.getUser();
-        id = user.getId();
-        name = user.getName();
-        uniqueName = user.getUniqueName();
-        email = user.eMail;
-        avatar = user.avatar;
-        role = workspaceUser.role;
-        state = workspaceUser.state;
+        if (user != null) {
+            id = user.getId();
+            name = user.getName();
+            uniqueName = user.getUniqueName();
+            email = user.eMail;
+            avatar = user.avatar;
+            role = workspaceUser.role;
+            state = workspaceUser.state;
+        }
     }
 }

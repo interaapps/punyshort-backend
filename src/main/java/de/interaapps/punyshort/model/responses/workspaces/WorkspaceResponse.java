@@ -30,11 +30,7 @@ public class WorkspaceResponse {
         createdAt = workspace.createdAt;
 
 
-        users = Repo.get(WorkspaceUser.class).query()
-            .where("workspaceId", workspace.id)
-            .whereExists(Workspace.class, q ->
-                q.where(Workspace.class, "id", "=", WorkspaceUser.class, "workspaceId")
-            )
+        users = WorkspaceUser.getByWorkspace(workspace.id)
             .all()
             .stream()
             .map(WorkspaceUserResponse::new)

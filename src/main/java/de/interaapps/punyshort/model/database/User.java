@@ -1,5 +1,6 @@
 package de.interaapps.punyshort.model.database;
 
+import de.interaapps.punyshort.exceptions.NotFoundException;
 import de.interaapps.punyshort.model.database.domains.Domain;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.javawebstack.orm.Model;
@@ -105,6 +106,12 @@ public class User extends Model {
 
     public static User getById(String id) {
         return Repo.get(User.class).where("id", id).first();
+    }
+
+    public static User getByIdOrFail(String id) {
+        User byId = getById(id);
+        if (byId == null) throw new NotFoundException();
+        return byId;
     }
 
     public static User getByMail(String mail) {

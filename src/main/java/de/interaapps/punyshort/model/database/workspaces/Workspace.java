@@ -1,5 +1,6 @@
 package de.interaapps.punyshort.model.database.workspaces;
 
+import de.interaapps.punyshort.exceptions.NotFoundException;
 import de.interaapps.punyshort.model.database.User;
 import de.interaapps.punyshort.model.database.domains.Domain;
 import de.interaapps.punyshort.model.database.domains.DomainUser;
@@ -10,6 +11,7 @@ import org.javawebstack.orm.annotation.Column;
 import org.javawebstack.orm.annotation.Filterable;
 import org.javawebstack.orm.annotation.Searchable;
 import org.javawebstack.orm.annotation.Table;
+import org.javawebstack.orm.query.Query;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -63,13 +65,23 @@ public class Workspace extends Model {
         return Repo.get(Workspace.class).where("id", id).first();
     }
 
+    public static Workspace getByIdOrFail(String id) {
+        Workspace workspace = getById(id);
+        if (workspace == null) throw new NotFoundException();
+        return workspace;
+    }
+
     public static Workspace bySlug(String slug) {
         return Repo.get(Workspace.class).where("slug", slug).first();
     }
 
 
+    public void removeUser(String userId) {
+        Repo.get(WorkspaceUser.class).where("workspaceId", id).where("userId", userId).delete();
+    }
+
     public void removeUser(User user) {
-        Repo.get(WorkspaceUser.class).where("workspaceId", id).where("userId", user.getId()).delete();
+        removeUser(user.id);
     }
 
     public void removeDomain(Domain domain) {
@@ -92,11 +104,39 @@ public class Workspace extends Model {
         workspaceDomain.save();
     }
 
+    public WorkspaceUser getUser(String userId, boolean isAccepted) {
+        Query<WorkspaceUser> where = Repo.get(WorkspaceUser.class).where("workspaceId", id).where("userId", userId);
+
+        if (isAccepted) {
+            where.where("state", WorkspaceUser.State.ACCEPTED);
+        }
+
+        return where.first();
+    }
     public WorkspaceUser getUser(String userId) {
-        return Repo.get(WorkspaceUser.class).where("workspaceId", id).where("userId", userId).first();
+        return getUser(userId, true);
     }
 
+    public WorkspaceUser getUser(User user, boolean isAccepted) {
+        return getUser(user.getId(), isAccepted);
+    }
     public WorkspaceUser getUser(User user) {
-        return getUser(user.getId());
+        return getUser(user.getId(), true);
+    }
+
+    public WorkspaceUser getUserOrFail(User user) {
+        WorkspaceUser workspaceUser = getUser(user);
+        if (workspaceUser == null) throw new NotFoundException();
+        return workspaceUser;
+    }
+    public WorkspaceUser getUserOrFail(String userId) {
+        WorkspaceUser workspaceUser = getUser(userId);
+        if (workspaceUser == null) throw new NotFoundException();
+        return workspaceUser;
+    }
+    public WorkspaceUser getUserOrFail(String userId, boolean isAccepted) {
+        WorkspaceUser workspaceUser = getUser(userId, isAccepted);
+        if (workspaceUser == null) throw new NotFoundException();
+        return workspaceUser;
     }
 }

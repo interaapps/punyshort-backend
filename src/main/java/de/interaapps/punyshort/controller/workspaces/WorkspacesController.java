@@ -34,14 +34,14 @@ import java.util.stream.Collectors;
 public class WorkspacesController extends HttpController {
     @Get
     @With("auth")
-    public PaginatedResponse<WorkspaceResponse> getAll(Exchange exchange, @Attrib("user") User user, @Attrib("token") AccessToken accessToken) {
+    public PaginatedResponse<WorkspaceResponse> getAll(Exchange exchange, @Attrib("user") User user, @org.javawebstack.httpserver.router.annotation.params.Query("invitations") String queryInvitations, @Attrib("token") AccessToken accessToken) {
         accessToken.checkPermission("workspaces:read");
         Query<Workspace> workspaceQuery = Repo.get(Workspace.class)
             .query();
         workspaceQuery.whereExists(WorkspaceUser.class, u ->
             u.where(WorkspaceUser.class, "workspaceId", "=", Workspace.class, "id")
                 .where("userId", user.id)
-                .where("state", WorkspaceUser.State.ACCEPTED)
+                .where("state", queryInvitations != null && queryInvitations.equals("true") ? WorkspaceUser.State.INVITED : WorkspaceUser.State.ACCEPTED)
         );
 
         RequestHelper.defaultNavigation(exchange, workspaceQuery);
@@ -95,16 +95,13 @@ public class WorkspacesController extends HttpController {
     @Delete("/{id}")
     @With("auth")
     public ActionResponse delete(@Path("id") String id, @Attrib("token") AccessToken accessToken, @Attrib("user") User user) {
-        Workspace workspace = Workspace.getById(id);
-
-        if (workspace == null)
-            throw new NotFoundException();
+        Workspace workspace = Workspace.getByIdOrFail(id);
 
         accessToken.checkPermission("workspaces:delete");
 
-        WorkspaceUser workspaceUser = workspace.getUser(user.id);
+        WorkspaceUser workspaceUser = workspace.getUserOrFail(user.id);
 
-        if (workspaceUser == null || workspaceUser.role != WorkspaceUser.Role.ADMIN)
+        if (workspaceUser.role != WorkspaceUser.Role.ADMIN)
             throw new PermissionsDeniedException();
 
         workspace.delete();
@@ -115,47 +112,6 @@ public class WorkspacesController extends HttpController {
         });
         Repo.get(WorkspaceUser.class).where("workspaceId", workspace.id).delete();
         Repo.get(WorkspaceDomain.class).where("workspaceId", workspace.id).delete();
-
-        return new ActionResponse(true);
-    }
-
-
-    @Post("/{id}/invite")
-    @With("auth")
-    public ActionResponse inviteUser(@Path("id") String id, @Body CreateWorkspaceInvitationRequest request, @Attrib("user") User user, @Attrib("token") AccessToken accessToken) {
-        Workspace workspace = Workspace.getById(id);
-        accessToken.checkPermission("workspaces.users:write");
-
-        if (workspace.getUser(user.id).role != WorkspaceUser.Role.ADMIN)
-            throw new PermissionsDeniedException();
-
-        User requestUser = User.getByMail(request.email);
-
-        if (requestUser == null)
-            return new ActionResponse(true);
-
-        workspace.addUser(requestUser, request.role, WorkspaceUser.State.INVITED);
-
-        return new ActionResponse(true);
-    }
-
-    @Delete("/{id}/users/{userId}")
-    @With("auth")
-    public ActionResponse removeUser(@Path("id") String id, @Path("userId") String userId, @Attrib("user") User user, @Attrib("token") AccessToken accessToken) {
-        accessToken.checkPermission("workspaces.users:write");
-
-        Workspace workspace = Workspace.getById(id);
-
-        User requestUser = User.getById(userId);
-
-        if (workspace == null) throw new NotFoundException();
-
-        if (workspace.getUser(user.id).role != WorkspaceUser.Role.ADMIN && !requestUser.id.equals(user.id))
-            throw new PermissionsDeniedException();
-
-        if (requestUser == null) throw new NotFoundException();
-
-        workspace.removeUser(user);
 
         return new ActionResponse(true);
     }

@@ -2,7 +2,10 @@ package de.interaapps.punyshort.model.responses.links;
 
 import de.interaapps.punyshort.model.database.ShortenLink;
 import de.interaapps.punyshort.model.database.domains.Domain;
+import de.interaapps.punyshort.model.database.workspaces.Workspace;
+import de.interaapps.punyshort.model.database.workspaces.WorkspaceUser;
 import de.interaapps.punyshort.model.responses.domains.DomainResponse;
+import de.interaapps.punyshort.model.responses.workspaces.WorkspaceUserResponse;
 
 import java.util.List;
 
@@ -15,6 +18,8 @@ public class ShortenLinkResponse {
     public ShortenLink.Type type;
     public CompactStats compactStats;
     public List<String> tags;
+    public String workspaceId;
+    public WorkspaceUserResponse user;
 
     public ShortenLinkResponse(ShortenLink shortenLink, Domain domain) {
         this.domain = new DomainResponse(domain, false);
@@ -24,6 +29,15 @@ public class ShortenLinkResponse {
         this.longLink = shortenLink.longLink;
         this.fullLink = "https://" + domain.name + "/" + this.path;
         this.tags = shortenLink.getTags();
+
+        if (shortenLink.workspaceId != null) {
+            this.workspaceId = shortenLink.workspaceId;
+
+            Workspace workspace = Workspace.getById(shortenLink.workspaceId);
+            if (workspace != null) {
+                 user = new WorkspaceUserResponse(workspace.getUser(shortenLink.userId));
+            }
+        }
     }
 
     public ShortenLinkResponse(ShortenLink shortenLink) {
