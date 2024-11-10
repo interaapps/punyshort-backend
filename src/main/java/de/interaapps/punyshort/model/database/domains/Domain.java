@@ -5,6 +5,7 @@ import de.interaapps.punyshort.exceptions.InternalErrorException;
 import de.interaapps.punyshort.exceptions.PermissionsDeniedException;
 import de.interaapps.punyshort.helper.DNSHelper;
 import de.interaapps.punyshort.model.database.AccessToken;
+import de.interaapps.punyshort.model.database.ShortenLink;
 import de.interaapps.punyshort.model.database.User;
 import de.interaapps.punyshort.model.database.workspaces.WorkspaceDomain;
 import de.interaapps.punyshort.model.database.workspaces.WorkspaceUser;
@@ -203,5 +204,11 @@ public class Domain extends Model {
 
     public static Query<Domain> getByWorkspace(String workspaceId) {
         return getByWorkspace(workspaceId, null);
+    }
+
+    public void delete() {
+        Repo.get(ShortenLink.class).where("domain", id).get().forEach(ShortenLink::delete);
+        Repo.get(DomainUser.class).where("domain", id).delete();
+        Repo.get(WorkspaceDomain.class).where("domainId", id).delete();
     }
 }

@@ -159,10 +159,6 @@ public class DomainsController extends HttpController {
 
         domain.delete();
 
-        Repo.get(ShortenLink.class).where("domain", domain.id).get().forEach(ShortenLink::delete);
-        Repo.get(DomainUser.class).where("domain", domain.id).delete();
-        Repo.get(WorkspaceDomain.class).where("domainId", domain.id).delete();
-
         return new ActionResponse(true);
     }
 
