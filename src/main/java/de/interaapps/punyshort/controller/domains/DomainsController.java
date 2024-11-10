@@ -15,6 +15,7 @@ import de.interaapps.punyshort.model.database.domains.DomainUser;
 import de.interaapps.punyshort.model.database.stats.ShortenLinkClickPerDateStats;
 import de.interaapps.punyshort.model.database.stats.ShortenLinkClickStats;
 import de.interaapps.punyshort.model.database.stats.ShortenLinkCountriesStats;
+import de.interaapps.punyshort.model.database.workspaces.WorkspaceDomain;
 import de.interaapps.punyshort.model.requests.domains.CreateDomainRequest;
 import de.interaapps.punyshort.model.requests.links.FollowLinkRequest;
 import de.interaapps.punyshort.model.responses.ActionResponse;
@@ -160,6 +161,7 @@ public class DomainsController extends HttpController {
 
         Repo.get(ShortenLink.class).where("domain", domain.id).get().forEach(ShortenLink::delete);
         Repo.get(DomainUser.class).where("domain", domain.id).delete();
+        Repo.get(WorkspaceDomain.class).where("domainId", domain.id).delete();
 
         return new ActionResponse(true);
     }
